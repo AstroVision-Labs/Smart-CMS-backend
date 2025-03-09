@@ -53,4 +53,42 @@ export const getCourses = async (req, res) => {
     } catch (error) {
       res.status(500).json({ message: 'Something went wrong' });
     }
-  };
+};
+
+// Register for a course
+export const registerForCourse = async (req, res) => {
+    const courseId = req.params.courseId;
+    const studentId = req.user._id;
+  
+    try {
+      const course = await Course.findById(courseId);
+      if (!course) {
+        return res.status(404).json({ message: 'Course not found' });
+      }
+  
+      if (course.students.includes(studentId)) {
+        return res.status(400).json({ message: 'You are already registered for this course' });
+      }
+  
+      course.students.push(studentId);
+      await course.save();
+  
+      const student = await User.findById(studentId);
+      if (!student) {
+        return res.status(404).json({ message: 'Student not found' });
+      }
+  
+      student.courses.push(courseId);
+      await student.save();
+  
+      // Send a notification email
+      const emailSubject = `Course Registration Confirmation: ${course.name}`;
+      const emailText = `You have successfully registered for ${course.name} (${course.code}).\n\nSchedule: ${course.schedule.day}, ${course.schedule.startTime} - ${course.schedule.endTime}`;
+      sendEmail(student.email, emailSubject, emailText);
+  
+      res.status(200).json({ message: 'Course registration successful', course });
+    } catch (error) {
+      console.error('Error in registerForCourse:', error);
+      res.status(500).json({ message: 'Something went wrong' });
+    }
+};
