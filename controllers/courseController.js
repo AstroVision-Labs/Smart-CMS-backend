@@ -140,3 +140,52 @@ export const getCourseById = async (req, res) => {
       res.status(500).json({ message: 'Something went wrong' });
     }
 };
+
+//Get Lecture materials
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Get all lecture materials for a course
+export const getLectureMaterials = async (req, res) => {
+  const { courseId } = req.params;
+  const userId = req.user._id;
+
+  try {
+    const course = await Course.findById(courseId);
+
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    const isInstructor = course.instructor.equals(userId);
+    const isStudent = course.students.includes(userId);
+
+    if (!isInstructor && !isStudent) {
+      return res.status(403).json({ message: 'You are not authorized to view these files' });
+    }
+    
+    const lectureMaterials = course.lectureMaterials;
+
+    if (!lectureMaterials || lectureMaterials.length === 0) {
+      return res.status(404).json({ message: 'No lecture materials found for this course' });
+    }
+
+    // Optionally, you can return additional metadata about the files
+    const materialsWithMetadata = lectureMaterials.map((filePath) => {
+      const fullPath = path.join(__dirname, '..', filePath);
+      const stats = fs.statSync(fullPath);
+
+      return {
+        filename: path.basename(filePath),
+        filePath,
+        size: stats.size,
+        createdAt: stats.birthtime,
+      };
+    });
+
+    res.status(200).json(materialsWithMetadata);
+  } catch (error) {
+    console.error('Error fetching lecture materials:', error);
+    res.status(500).json({ message: 'Something went wrong' });
+  }
+};
