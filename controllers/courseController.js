@@ -111,3 +111,32 @@ export const getStudentSchedule = async (req, res) => {
       res.status(500).json({ message: 'Something went wrong' });
     }
 };
+
+// Get course by courseId
+export const getCourseById = async (req, res) => {
+    const { courseId } = req.params;
+    const userId = req.user._id; 
+  
+    try {
+      const course = await Course.findById(courseId)
+        .populate('instructor', 'name email') 
+        .populate('students', 'name email'); 
+  
+      if (!course) {
+        return res.status(404).json({ message: 'Course not found' });
+      }
+  
+      // Check if the user is the instructor or a student enrolled in the course
+      const isInstructor = course.instructor._id.equals(userId);
+      const isStudent = course.students.some((student) => student._id.equals(userId));
+  
+      if (!isInstructor && !isStudent) {
+        return res.status(403).json({ message: 'You are not authorized to view this course' });
+      }
+  
+      res.status(200).json(course);
+    } catch (error) {
+      console.error('Error fetching course:', error);
+      res.status(500).json({ message: 'Something went wrong' });
+    }
+};
