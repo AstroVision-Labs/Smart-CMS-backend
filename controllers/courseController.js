@@ -44,3 +44,13 @@ export const createCourse = async (req, res) => {
       res.status(500).json({ message: 'Something went wrong' });
     }
 };
+
+// Get all courses
+export const getCourses = async (req, res) => {
+    try {
+      const courses = await Course.find().populate('instructor', 'name email');
+      res.status(200).json(courses);
+    } catch (error) {
+      res.status(500).json({ message: 'Something went wrong' });
+    }
+  };
