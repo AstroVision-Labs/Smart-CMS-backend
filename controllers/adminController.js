@@ -19,3 +19,12 @@ export const getAllUsers = async (req, res) => {
       res.status(500).json({ message: 'Something went wrong' });
     }
   };
+
+  export const getAllResources = async (req, res) => {
+    try {
+      const resources = await Resource.find().populate('reservedBy', 'name email');
+      res.status(200).json(resources);
+    } catch (error) {
+      res.status(500).json({ message: 'Something went wrong' });
+    }
+  };
