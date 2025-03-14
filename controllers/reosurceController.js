@@ -99,4 +99,44 @@ export const getResourceUsageAnalyticsData = async () => {
       console.error('Error fetching resource usage analytics data:', error);
       throw error;
     }
-  };
+};
+
+// Reserve a resource
+export const reserveResource = async (req, res) => {
+    const { reservationDate, reservationTime } = req.body;
+    const resourceId = req.params.resId;
+    const userId = req.user._id;
+  
+    try {
+      const resource = await Resource.findById(resourceId);
+      if (!resource) {
+        return res.status(404).json({ message: 'Resource not found' });
+      }
+  
+      if (!resource.availability) {
+        return res.status(400).json({ message: 'Resource is already reserved' });
+      }
+  
+      const formattedTime = reservationTime.length === 5 ? `${reservationTime}:00` : reservationTime; // Add seconds if missing
+      const combinedDateTime = `${reservationDate}T${formattedTime}`;
+  
+      const colomboTime = moment.tz(combinedDateTime, 'Asia/Colombo');
+  
+      const reservationExpiry = colomboTime.clone().add(1, 'day').toDate();
+  
+      resource.availability = false;
+      resource.reservedBy = userId;
+      resource.reservationDate = colomboTime.toDate(); // Save the full date and time
+      resource.reservationExpiry = reservationExpiry;
+      await resource.save();
+  
+      const analytics = await getResourceUsageAnalyticsData();
+      const io = getIO();
+      io.emit('resourceUpdate', analytics);
+  
+      res.status(200).json(resource);
+    } catch (error) {
+      console.error('Error reserving resource:', error);
+      res.status(500).json({ message: 'Something went wrong' });
+    }
+};
