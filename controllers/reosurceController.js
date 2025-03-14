@@ -64,4 +64,39 @@ export const getAvailableResources = async (req, res) => {
       console.error('Error fetching available resources:', error);
       res.status(500).json({ message: 'Something went wrong' });
     }
+};
+
+// Helper function to get resource usage analytics data without requiring req/res
+export const getResourceUsageAnalyticsData = async () => {
+    try {
+      // Total number of resources
+      const totalResources = await Resource.countDocuments();
+  
+      // Total number of reserved resources
+      const totalReservedResources = await Resource.countDocuments({ availability: false });
+  
+      // Most reserved resources
+      const mostReservedResources = await Resource.aggregate([
+        {
+          $group: {
+            _id: '$type',
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1 } },
+      ]);
+  
+      // Resource utilization percentage
+      const resourceUtilization = (totalReservedResources / totalResources) * 100;
+  
+      return {
+        totalResources,
+        totalReservedResources,
+        mostReservedResources,
+        resourceUtilization: `${resourceUtilization.toFixed(2)}%`,
+      };
+    } catch (error) {
+      console.error('Error fetching resource usage analytics data:', error);
+      throw error;
+    }
   };
