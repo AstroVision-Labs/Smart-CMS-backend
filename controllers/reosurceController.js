@@ -140,3 +140,14 @@ export const reserveResource = async (req, res) => {
       res.status(500).json({ message: 'Something went wrong' });
     }
 };
+
+// Get resource analytics (route handler)
+export const getResourceUsageAnalytics = async (req, res) => {
+    try {
+      const analyticsData = await getResourceUsageAnalyticsData();
+      res.status(200).json(analyticsData);
+    } catch (error) {
+      console.error('Error fetching resource usage analytics:', error);
+      res.status(500).json({ message: 'Something went wrong' });
+    }
+};
