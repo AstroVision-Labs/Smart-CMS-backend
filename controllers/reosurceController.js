@@ -51,3 +51,17 @@ export const getResources = async (req, res) => {
       res.status(500).json({ message: 'Something went wrong' });
     }
 };
+
+// Get all available resources
+export const getAvailableResources = async (req, res) => {
+    try {
+      const limit = parseInt(req.params.limit) || 100;
+  
+      const resources = await Resource.find({ availability: true }).limit(limit);
+  
+      res.status(200).json(resources);
+    } catch (error) {
+      console.error('Error fetching available resources:', error);
+      res.status(500).json({ message: 'Something went wrong' });
+    }
+  };
