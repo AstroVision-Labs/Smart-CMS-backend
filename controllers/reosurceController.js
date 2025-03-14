@@ -40,3 +40,14 @@ export const searchResources = async (req, res) => {
       res.status(500).json({ message: 'Something went wrong' });
     }
 };
+
+// Get resources with reservedBy details
+export const getResources = async (req, res) => {
+    try {
+      const resources = await Resource.find().populate('reservedBy', 'name email'); // Populate reservedBy
+      res.status(200).json(resources);
+    } catch (error) {
+      console.error('Error fetching resources:', error);
+      res.status(500).json({ message: 'Something went wrong' });
+    }
+};
