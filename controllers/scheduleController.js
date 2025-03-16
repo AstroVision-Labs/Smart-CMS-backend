@@ -70,3 +70,24 @@ export const updateEventInSchedule = async (req, res) => {
       res.status(500).json({ message: 'Something went wrong' });
     }
 };
+
+//Delete a Schedule
+export const deleteEventFromSchedule = async (req, res) => {
+    const studentId = req.user._id; 
+    const { eventId } = req.params; 
+  
+    try {
+        const schedule = await Schedule.findOne({ studentId });
+        if (!schedule) {
+            return res.status(404).json({ message: 'Schedule not found' });
+        }
+    
+        schedule.events.pull(eventId);
+        await schedule.save();
+  
+        res.status(200).json({message: "The event has been deleted.",schedule});
+    } catch (error) {
+        console.error('Error deleting event from schedule:', error);
+        res.status(500).json({ message: 'Something went wrong' });
+    }
+};
