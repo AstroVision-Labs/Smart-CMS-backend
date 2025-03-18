@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import Event from '../models/Event.js';
 import Resource from '../models/Resource.js';
 
+// Get all users (admin only)
 export const getAllUsers = async (req, res) => {
     try {
       const users = await User.find();
@@ -11,6 +12,7 @@ export const getAllUsers = async (req, res) => {
     }
   };
 
+  // Get all events (admin only)
   export const getAllEvents = async (req, res) => {
     try {
       const events = await Event.find().populate('organizer', 'name email');
@@ -20,6 +22,7 @@ export const getAllUsers = async (req, res) => {
     }
   };
 
+  // Get all resources (admin only)
   export const getAllResources = async (req, res) => {
     try {
       const resources = await Resource.find().populate('reservedBy', 'name email');
