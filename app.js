@@ -103,3 +103,6 @@ cron.schedule('* * * * *', async () => {
       console.error('Error updating expired reservations:', error);
     }
 });
+
+const PORT = process.env.PORT || 5000;
+httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
