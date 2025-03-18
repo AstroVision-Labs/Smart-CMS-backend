@@ -32,4 +32,39 @@ export const register = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Something went wrong' });
   }
-};    
+};   
+
+// Login user
+export const login = async (req, res) => {
+    const { email, password } = req.body;
+  
+    try {
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(400).json({ message: 'Invalid credentials' });
+      }
+  
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        const token = authHeader.split(' ')[1]; // Extract the token from the header
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET); // Verify the token
+          if (decoded.id === user.id) {
+            return res.status(400).json({ message: 'You are already logged in' });
+          }
+        } catch (error) {
+          // If the token is invalid or expired, proceed with login
+        }
+      }
+  
+      const token = jwt.sign({_id: user._id, id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+      res.status(200).json({ user, token });
+    } catch (error) {
+      res.status(500).json({ message: 'Something went wrong' });
+    }
+  };
