@@ -30,3 +30,6 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   console.log('Uploads directory created:', uploadsDir);
 }
+
+const app = express();
+
