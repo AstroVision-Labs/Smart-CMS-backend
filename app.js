@@ -53,3 +53,27 @@ app.use('/api/schedules', scheduleRoutes);
 
 connectDB();
 
+const io = initIO(httpServer);
+
+io.on('connection', (socket) => {
+  console.log('New client connected:', socket.id);
+
+  socket.on('searchResources', async (query) => {
+    try {
+      const resources = await Resource.find({
+        availability: true,
+        name: { $regex: query, $options: 'i' }, 
+      }).limit(10); 
+
+      socket.emit('searchResults', resources);
+    } catch (error) {
+      console.error('Error searching resources:', error);
+      socket.emit('searchError', { message: 'Something went wrong' });
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
+});
+
