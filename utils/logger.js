@@ -1,12 +1,31 @@
-import mongoose from 'mongoose';
+import winston from 'winston';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const notificationSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  message: { type: String, required: true },
-  read: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now },
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const logFormat = winston.format.combine(
+  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  winston.format.printf(
+    (info) => `${info.timestamp} [${info.level.toUpperCase()}]: ${info.message}`
+  )
+);
+
+const logger = winston.createLogger({
+  level: 'info', 
+  format: logFormat,
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({
+      filename: path.join(__dirname, '../logs/app.log'), // Log file path
+      level: 'info', 
+    }),
+    new winston.transports.File({
+      filename: path.join(__dirname, '../logs/error.log'),
+      level: 'error', 
+    }),
+  ],
 });
 
-const Notification = mongoose.model('Notification', notificationSchema);
-
-export default Notification;
+export default logger;
