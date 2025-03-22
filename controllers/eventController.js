@@ -125,6 +125,66 @@ export const getEventByTitle = async (req, res) => {
   }
 };
 
+// Assign multiple students to an event
+export const assignBulkStudentsToEvent = async (req, res) => {
+  const { eventId } = req.params;
+  const { studentIds } = req.body;
+
+  try {
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({ message: 'Provide the student IDs' });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    const validStudents = await User.find({
+      _id: { $in: studentIds },
+      role: 'student',
+    });
+
+    const validStudentIds = validStudents.map((student) => student._id.toString());
+
+    const newStudents = validStudentIds.filter((id) => !event.attendees.includes(id));
+
+    if (newStudents.length === 0) {
+      return res.status(400).json({ message: 'No new students to add' });
+    }
+
+    event.attendees.push(...newStudents);
+    event.attendeesCount += newStudents.length;
+    await event.save();
+
+    for (const studentId of newStudents) {
+      const student = validStudents.find((s) => s._id.toString() === studentId);
+
+      if (student) {
+        await Notification.create({
+          userId: studentId,
+          message: `You have been assigned to the event: ${event.title}`,
+        });
+
+        const emailSubject = `Event Assignment: ${event.title}`;
+        const emailText = `You have been assigned to the event "${event.title}" on ${event.date}.`;
+        sendEmail(student.email, emailSubject, emailText);
+      }
+    }
+
+    const eventAnalytics = await getEventAnalyticsData();
+    const userAnalytics = await getUserActivityAnalyticsData();
+    const io = getIO();
+    io.emit('eventUpdate', eventAnalytics);
+    io.emit('userUpdate', userAnalytics);
+
+    res.status(200).json({ message: 'Students assigned successfully', event });
+  } catch (error) {
+    console.error('Error assigning students to event:', error);
+    res.status(500).json({ message: 'Something went wrong' });
+  }
+};
+
 // Mark attendance for an event
 export const markAttendance = async (req, res) => {
   const { eventId } = req.params;
@@ -158,6 +218,38 @@ export const markAttendance = async (req, res) => {
   }
 };
 
+// Delete an attendee from an event
+export const deleteAttendee = async (req, res) => {
+  const { eventId, attendeeId } = req.params;
+
+  try {
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    if (!event.attendees.includes(attendeeId)) {
+      return res.status(400).json({ message: 'Attendee not found in this event' });
+    }
+
+    event.attendees = event.attendees.filter((id) => id.toString() !== attendeeId);
+    event.attendeesCount -= 1;
+
+    await event.save();
+
+    const eventAnalytics = await getEventAnalyticsData();
+    const userAnalytics = await getUserActivityAnalyticsData();
+    const io = getIO();
+    io.emit('eventUpdate', eventAnalytics);
+    io.emit('userUpdate', userAnalytics);
+
+    res.status(200).json({ message: 'Attendee removed successfully', event });
+  } catch (error) {
+    console.error('Error deleting attendee:', error);
+    res.status(500).json({ message: 'Something went wrong' });
+  }
+};
+
 // Get events with attendance
 export const getEventsWithAttendance = async (req, res) => {
   try {
@@ -186,7 +278,7 @@ export const getEventAttendanceAnalytics = async (req, res) => {
 //Update an event
 export const updateEvent = async (req, res) => {
   const eventId = req.params.id;
-  const { title, description, date, location } = req.body;
+  const { title, description, date, location, organizer } = req.body;
   const userId = req.user._id;
 
   try {
@@ -203,6 +295,8 @@ export const updateEvent = async (req, res) => {
         description,
         date,
         location,
+        organizer,
+        updatedAt: new Date(),
       },
       { new: true, runValidators: true }
     ).populate('organizer', 'name email');
@@ -252,4 +346,4 @@ export const deleteEvent = async (req, res) => {
     console.error('Error deleting event', error);
     res.status(500).json({ message: 'Something went wrong' });
   }
-}
+};
